@@ -20,20 +20,33 @@ public class Veiculo implements Serializable{
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Long id;
 	
-	@Column(nullable = false)
+	@Column
 	private String marca;
 	
-	@Column(nullable = false)
+	@Column
 	private String modelo;
 	
-	@Column(nullable = false)
+	@Column
 	private String placa;
 	
-	@Column(nullable = false)
+	@Column
 	private Long quilometragem;
 	
 	private String cor;
 	
+	
+	public Veiculo() {
+		
+	}
+	
+	
+	public Veiculo(String marca, String modelo, String placa, Long quilometragem) {
+		this.marca = marca;
+		this.modelo = modelo;
+		this.placa = placa;
+		this.quilometragem = quilometragem;
+	}
+
 	public Long getId() {
 		return id;
 	}

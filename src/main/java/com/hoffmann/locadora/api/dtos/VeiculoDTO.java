@@ -8,6 +8,8 @@ import javax.validation.constraints.NotNull;
 
 import org.hibernate.validator.constraints.Length;
 
+import io.swagger.annotations.ApiModelProperty;
+
 
 
 public class VeiculoDTO implements Serializable{
@@ -17,25 +19,30 @@ public class VeiculoDTO implements Serializable{
 	 */
 	private static final long serialVersionUID = 1L;
 
-	
+	@ApiModelProperty(notes = "O Id do Veículo")
 	private Optional<Long> id = Optional.empty();
 	
 	
 	@NotEmpty(message = "Marca não pode ser vazio.")
 	@Length(min = 3, max = 200, message = "Marca deve conter entre 3 e 200 caracteres.")
+	@ApiModelProperty(notes = "A Marca do Veiculo", required = true)
 	private String marca;
 	
 	@NotEmpty(message = "Modelo não pode ser vazio.")
 	@Length(min = 3, max = 200, message = "Modelo deve conter entre 3 e 200 caracteres.")
+	@ApiModelProperty(notes = "O Modelo do Veiculo", required = true)
 	private String modelo;
 	
 	@NotEmpty(message = "Placa não pode ser vazio.")
 	@Length(min = 8, max = 8, message = "Placa deve conter 8 caracteres.")
+	@ApiModelProperty(notes = "A Placa do Veiculo", required = true)
 	private String placa;
 	
 	@NotNull(message = "Quilometragem não pode ser nulo.")
+	@ApiModelProperty(notes = "A Quilometragem do Veiculo", required = true)
 	private Long quilometragem;
 	
+	@ApiModelProperty(notes = "A Cor do Veiculo")
 	private Optional<String> cor = Optional.empty();
 
 	public Optional<Long> getId() {

@@ -1,5 +1,6 @@
 package com.hoffmann.locadora.api.controllers;
 
+import java.text.ParseException;
 import java.util.Optional;
 
 import javax.validation.Valid;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
@@ -29,66 +31,60 @@ import com.hoffmann.locadora.api.entities.Veiculo;
 import com.hoffmann.locadora.api.response.Response;
 import com.hoffmann.locadora.api.services.VeiculoService;
 
-
-
+import io.swagger.annotations.ApiOperation;
 
 @RestController
 @RequestMapping("/api/veiculos")
 public class VeiculoController {
 
 	private static final Logger log = LoggerFactory.getLogger(VeiculoController.class);
-	
+
 	@Autowired
 	private VeiculoService veiculoService;
-	
+
 	@Value("${paginacao.qtd_por_pagina}")
 	private int qtdPorPagina;
-	
-	
-	
-	
-	
+
 	/**
 	 * Retorna a listagem de veículos.
 	 * 
 	 * @return ResponseEntity<Response<VeiculoDTO>>
 	 */
+	@ApiOperation(value = "Listagem dos veículos disponíveis")
 	@GetMapping
-	public ResponseEntity<Response<Page<VeiculoDTO>>> listar(
-			@RequestParam(value = "pag", defaultValue = "0") int pag,
+	public ResponseEntity<Response<Page<VeiculoDTO>>> listar(@RequestParam(value = "pag", defaultValue = "0") int pag,
 			@RequestParam(value = "ord", defaultValue = "id") String ord,
 			@RequestParam(value = "dir", defaultValue = "DESC") String dir) {
-		
+
 		log.info("Buscando veículos página: {}", pag);
-		
+
 		Response<Page<VeiculoDTO>> response = new Response<Page<VeiculoDTO>>();
-		
+
 		PageRequest pageRequest = PageRequest.of(pag, this.qtdPorPagina, Direction.valueOf(dir), ord);
-		
+
 		Page<Veiculo> veiculos = this.veiculoService.buscarTodos(pageRequest);
-		
+
 		Page<VeiculoDTO> veiculosDTO = veiculos.map(veiculo -> this.converterVeiculoDto(veiculo));
 
 		response.setData(veiculosDTO);
-		
+
 		return ResponseEntity.ok(response);
 	}
-	
-	
-	
+
 	/**
 	 * Retorna um veículo por ID.
 	 * 
 	 * @param id
 	 * @return ResponseEntity<Response<VeiculoDTO>>
 	 */
+	@ApiOperation(value = "Procura um veículo por um ID")
 	@GetMapping(value = "/{id}")
 	public ResponseEntity<Response<VeiculoDTO>> listarPorId(@PathVariable("id") Long id) {
-		
+
 		log.info("Buscando veículo por ID: {}", id);
-		
+
 		Response<VeiculoDTO> response = new Response<VeiculoDTO>();
-		
+
 		Optional<Veiculo> veiculo = this.veiculoService.buscarPorId(id);
 
 		if (!veiculo.isPresent()) {
@@ -98,32 +94,29 @@ public class VeiculoController {
 		}
 
 		response.setData(this.converterVeiculoDto(veiculo.get()));
-		
+
 		return ResponseEntity.ok(response);
 	}
-	
-	
-	
-	
-	
+
 	/**
 	 * Adiciona um novo veículo.
 	 * 
 	 * @param veiculoDTO
 	 * @param result
 	 * @return ResponseEntity<Response<VeiculoDTO>>
-	 * @throws ParseException 
+	 * @throws ParseException
 	 */
+	@ApiOperation(value = "Cria um novo veículo")
 	@PostMapping
 	public ResponseEntity<Response<VeiculoDTO>> adicionar(@Valid @RequestBody VeiculoDTO veiculoDTO,
-			BindingResult result)  {
-		
+			BindingResult result) {
+
 		log.info("Adicionando veículo: {}", veiculoDTO.toString());
-		
+
 		Response<VeiculoDTO> response = new Response<VeiculoDTO>();
-		
+
 		validarPlaca(veiculoDTO, result);
-		
+
 		Veiculo veiculo = this.converterDtoParaVeiculo(veiculoDTO, result);
 
 		if (result.hasErrors()) {
@@ -133,13 +126,11 @@ public class VeiculoController {
 		}
 
 		Veiculo veiculoPersistido = this.veiculoService.salvar(veiculo);
-		
+
 		response.setData(this.converterVeiculoDto(veiculoPersistido));
-		
-		return ResponseEntity.ok(response);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
-
-
 
 	/**
 	 * Atualiza os dados de um veículo.
@@ -147,19 +138,28 @@ public class VeiculoController {
 	 * @param id
 	 * @param veiculoDTO
 	 * @return ResponseEntity<Response<VeiculoDTO>>
-	 * @throws ParseException 
+	 * @throws ParseException
 	 */
+	@ApiOperation(value = "Atualiza os dados do veículo pelo ID")
 	@PutMapping(value = "/{id}")
 	public ResponseEntity<Response<VeiculoDTO>> atualizar(@PathVariable("id") Long id,
 			@Valid @RequestBody VeiculoDTO veiculoDTO, BindingResult result) {
-		
+
 		log.info("Atualizando veículo: {}", veiculoDTO.toString());
-		
+
 		Response<VeiculoDTO> response = new Response<VeiculoDTO>();
-		
+
+		Optional<Veiculo> veiculo = this.veiculoService.buscarPorId(id);
+
+		if (!veiculo.isPresent()) {
+			log.info("Erro ao atualizar devido ao veículo ID: {} ser inválido.", id);
+			response.getErrors().add("Erro ao atualizar veículo. Registro não encontrado para o id " + id);
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+		}
+
 		veiculoDTO.setId(Optional.of(id));
-		
-		Veiculo veiculo = this.converterDtoParaVeiculo(veiculoDTO, result);
+
+		Veiculo veiculoEncontrado = this.converterDtoParaVeiculo(veiculoDTO, result);
 
 		if (result.hasErrors()) {
 			log.error("Erro validando lançamento: {}", result.getAllErrors());
@@ -167,49 +167,39 @@ public class VeiculoController {
 			return ResponseEntity.badRequest().body(response);
 		}
 
-		Veiculo veiculoAtualizado = this.veiculoService.salvar(veiculo);
-		
+		Veiculo veiculoAtualizado = this.veiculoService.salvar(veiculoEncontrado);
+
 		response.setData(this.converterVeiculoDto(veiculoAtualizado));
-		
+
 		return ResponseEntity.ok(response);
 	}
-	
-	
-	
-	
 
-	
-	
 	/**
 	 * Remove um veículo por ID.
 	 * 
 	 * @param id
 	 * @return ResponseEntity<Response<String>>
 	 */
+	@ApiOperation(value = "Remove um veiculo")
 	@DeleteMapping(value = "/{id}")
 	public ResponseEntity<Response<String>> remover(@PathVariable("id") Long id) {
-		
+
 		log.info("Removendo veículo: {}", id);
-		
+
 		Response<String> response = new Response<String>();
-		
+
 		Optional<Veiculo> veiculo = this.veiculoService.buscarPorId(id);
 
 		if (!veiculo.isPresent()) {
 			log.info("Erro ao remover devido ao veículo ID: {} ser inválido.", id);
 			response.getErrors().add("Erro ao remover veículo. Registro não encontrado para o id " + id);
-			return ResponseEntity.badRequest().body(response);
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
 		}
 
 		this.veiculoService.remover(id);
-		
+
 		return ResponseEntity.ok(new Response<String>());
 	}
-	
-
-	
-
-	
 
 	/**
 	 * Converte um veiculo para um dto.
@@ -218,23 +208,20 @@ public class VeiculoController {
 	 * @return VeiculoDTO
 	 */
 	private VeiculoDTO converterVeiculoDto(Veiculo veiculo) {
-		
+
 		log.info("Convertendo veículo para DTO : ", veiculo.toString());
-		
+
 		VeiculoDTO dto = new VeiculoDTO();
-		
+
 		dto.setId(Optional.of(veiculo.getId()));
 		dto.setMarca(veiculo.getMarca());
 		dto.setModelo(veiculo.getModelo());
 		dto.setPlaca(veiculo.getPlaca());
 		dto.setQuilometragem(veiculo.getQuilometragem());
 		dto.setCor(Optional.of(veiculo.getCor()));
-		
+
 		return dto;
 	}
-
-
-
 
 	/**
 	 * Converte um dto para um veículo.
@@ -244,9 +231,9 @@ public class VeiculoController {
 	 * @return Veiculo
 	 */
 	private Veiculo converterDtoParaVeiculo(@Valid VeiculoDTO veiculoDTO, BindingResult result) {
-		
+
 		log.info("Convertendo DTO para um veiculo : ", veiculoDTO.toString());
-		
+
 		Veiculo veiculo = new Veiculo();
 
 		if (veiculoDTO.getId().isPresent()) {
@@ -256,8 +243,8 @@ public class VeiculoController {
 			} else {
 				result.addError(new ObjectError("veiculo", "Veículo não encontrado."));
 			}
-		} 
-		
+		}
+
 		veiculo.setMarca(veiculoDTO.getMarca());
 		veiculo.setModelo(veiculoDTO.getModelo());
 		veiculo.setPlaca(veiculoDTO.getPlaca());
@@ -266,9 +253,7 @@ public class VeiculoController {
 
 		return veiculo;
 	}
-	
-	
-	
+
 	/**
 	 * Validar se existe um veículo cadastrado no sistema com uma placa.
 	 * 
@@ -276,17 +261,15 @@ public class VeiculoController {
 	 * @param result
 	 */
 	private void validarPlaca(@Valid VeiculoDTO veiculoDTO, BindingResult result) {
-		
+
 		log.info("Validando veiculo : ", veiculoDTO.toString());
-		
+
 		Optional<Veiculo> veiculo = this.veiculoService.buscarPorPlaca(veiculoDTO.getPlaca());
-		
+
 		if (veiculo.isPresent()) {
 			result.addError(new ObjectError("veiculo", "Veículo com placa já cadastrada"));
 		}
-		
-		
+
 	}
-	
-	
+
 }

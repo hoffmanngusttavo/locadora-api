@@ -28,7 +28,7 @@ public interface VeiculoService {
 	Optional<Veiculo> buscarPorId(Long id);
 	
 	/**
-	 * Retorna um veículo por placa.
+	 * Retorna um veículo buscando pela placa.
 	 * 
 	 * @param placa
 	 * @return Optional<Veiculo>
@@ -44,7 +44,7 @@ public interface VeiculoService {
 	Veiculo salvar(Veiculo veiculo);
 	
 	/**
-	 * Remove um veiculo da base de dados.
+	 * Remove um veiculo pelo id.
 	 * 
 	 * @param id
 	 */

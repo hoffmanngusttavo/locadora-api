@@ -8,7 +8,6 @@ import javax.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort.Direction;
@@ -16,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,17 +33,18 @@ import com.hoffmann.locadora.api.services.VeiculoService;
 
 import io.swagger.annotations.ApiOperation;
 
+/**
+ * Classe controladora pela comunicação com o front através dos end-points.
+ */
 @RestController
 @RequestMapping("/api/veiculos")
+@CrossOrigin(origins = "*")
 public class VeiculoController {
 
 	private static final Logger log = LoggerFactory.getLogger(VeiculoController.class);
 
 	@Autowired
 	private VeiculoService veiculoService;
-
-	@Value("${paginacao.qtd_por_pagina}")
-	private int qtdPorPagina;
 
 	/**
 	 * Retorna a listagem de veículos.
@@ -53,6 +54,7 @@ public class VeiculoController {
 	@ApiOperation(value = "Listagem dos veículos disponíveis")
 	@GetMapping
 	public ResponseEntity<Response<Page<VeiculoDTO>>> listar(@RequestParam(value = "pag", defaultValue = "0") int pag,
+			@RequestParam(value = "size", defaultValue = "5") int size,
 			@RequestParam(value = "ord", defaultValue = "id") String ord,
 			@RequestParam(value = "dir", defaultValue = "DESC") String dir) {
 
@@ -60,7 +62,7 @@ public class VeiculoController {
 
 		Response<Page<VeiculoDTO>> response = new Response<Page<VeiculoDTO>>();
 
-		PageRequest pageRequest = PageRequest.of(pag, this.qtdPorPagina, Direction.valueOf(dir), ord);
+		PageRequest pageRequest = PageRequest.of(pag, size, Direction.valueOf(dir), ord);
 
 		Page<Veiculo> veiculos = this.veiculoService.buscarTodos(pageRequest);
 
